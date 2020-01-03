@@ -1,0 +1,41 @@
+#!/bin/bash
+#
+# Launches Generadores and Extracores from a lists. It needs Adr_lanza_auto and Adr_extrae_auto
+# Made by Adrian H. Obradors on the 2019-12-27
+
+###################################################################################
+# Globals:
+#   Adr_lanza_auto.log
+#   Adr_extrae_auto.log
+# Arguments:
+#   Archive with list of Generadores
+#   Archive with list of Extractores (Extr_DM.ksh EXTRACT LABEL NickName)
+#   Number of Max generators running
+#   Number of Max extractores running
+#   Date(s) to extract
+# Returns:
+#   None
+###################################################################################
+
+err() {
+  echo "[$(date +'%Y-%m-%dT%H:%M:%S%z')]: $@" >&2
+  exit 1
+}
+
+GEN=$1
+NGEN=$2
+
+EXT=$3
+NEXT=$4
+DATE=("${@:5}")
+
+for i in "${DATE[@]}"; do
+  nohup Adr_lanza_auto "$GEN" "$NGEN" "$i" &
+  wait "$!" || err "Waiter for generators in Gen_extrae_auto failed"
+  sleep 10
+  echo "Generators finished, launching extractors for day $i"
+  nohup Adr_extrae_auto "$EXT" "$NEXT" "$i" &
+  wait "$!" || err "Waitier for extractors in Gen_Extrae_auto failed"
+  echo "Extractors for day $i finished"
+  find /murexfileslt/DATAMART/datos/NY/MFE -mtime -0.2 -type f | zip -@ "/murexfileslt/DATAMART/datos/ADRIAN/MFE${i}"
+done

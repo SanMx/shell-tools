@@ -1,0 +1,93 @@
+#!/bin/bash
+#
+# Launches Generadores from a list while the number of generators are under a set limit.
+# Made by Adrian H. Obradors on the 2019-12-18, upon the code of Jose Angel
+
+###################################################################################
+# Globals:
+#   Adr_lanza_auto.log
+# Arguments:
+#   Archive with list of Generators (nohup Gen_DM.ksh LABEL SCANNERTABLE NickName)
+#   Number of Max generators running
+# Returns:
+#   None
+###################################################################################
+
+err() {
+  echo "[$(date +'%Y-%m-%dT%H:%M:%S%z')]: $*" >&2
+  exit 1
+}
+
+ENTRADA=$1
+MAX=$2
+FECHA=$3
+PIDs=""
+
+while read -r i; do
+  # Doesn't continue until the number of processes is lower than MAX
+  n_gen=$((MAX+1))
+  while (( n_gen > MAX )); do
+    sleep 2
+    n_gen=$(ps -ef | grep "Gen_DM.ksh" | grep -v "grep" | cut -d"." -f2- | sort -u | wc -l)
+  done
+  sleep 5
+  nohup ksh "$i $FECHA" &
+  PIDs="$PIDs $!"
+  echo "[$(date +'%Y-%m-%dT%H:%M:%S%z')]: Lanzado $i $FECHA" >> Adr_lanza_auto.log
+  echo "[$(date +'%Y-%m-%dT%H:%M:%S%z')]: Procesos en ejecucion $n_gen" >> Adr_lanza_auto.log
+
+done < "$ENTRADA"
+
+for PID in $PIDs; do
+  echo "Waiting for $PID"
+  wait "$PID" || err "Lanza Auto waiter failed";
+done
+echo "Finished"
+amxdtmp@bonglmxlti01:/murexdtmlt/DATAMART/batch$ cat Adr_extrae_auto
+#!/bin/bash
+#
+# Launches Extractores from a list while the number of extractores are under a set limit.
+# Made by Adrian H. Obradors on the 2019-12-18, upon the code of Jose Angel
+
+###################################################################################
+# Globals:
+#   Adr_extrae_auto.log
+# Arguments:
+#   Archive with list of Extractores (Extr_DM.ksh EXTRACT LABEL NickName)
+#   Number of Max generators running
+#   Date to extract
+# Returns:
+#   None
+###################################################################################
+
+err() {
+  echo "[$(date +'%Y-%m-%dT%H:%M:%S%z')]: $@" >> Adr_extrae_auto.log
+  exit 1
+}
+
+ENTRADA=$1
+MAX=$2
+FECHA=$3
+PIDs=""
+
+while read -r i; do
+  # Doesn't continue until the number of processes is lower than MAX
+  n_gen=$((MAX+1))
+  while (( n_gen > MAX )); do
+    sleep 0.1
+    n_gen=$(ps -ef | grep "Extr_DM.ksh" | grep -v "grep" | cut -d"." -f2- | sort -u | wc -l)
+  done
+  sleep 0.1
+  nohup ksh "$i" "$FECHA" &
+  PIDs="$PIDs $!"
+  echo "[$(date +'%Y-%m-%dT%H:%M:%S%z')]: Lanzado $i" >> Adr_extrae_auto.log
+  echo "[$(date +'%Y-%m-%dT%H:%M:%S%z')]: Procesos en ejecucion $n_gen" >> Adr_extrae_auto.log
+
+done < "$ENTRADA"
+
+for PID in $PIDs; do
+  echo "Waiting for $PID";
+  wait "$PID" || err "Waiter loop failed";
+done
+
+echo "Finished"

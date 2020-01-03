@@ -1,0 +1,37 @@
+#!/bin/bash
+#
+# Check or uncheck the boxes from the comparator.
+# Made by Adrian H. Obradors, on Christmas Eve. With the invaluable help of Eduardo Cuerda.
+# I dedicate this little program to all those that said it was a waste of time. It is.
+
+###########################################################
+# Globals:
+#   The configuration files. (Two per archive to compare)
+# Arguments:
+#   Name of box to check. (For example, "FOLDER")
+#   true/false to check/uncheck
+# Returns:
+#   Nothing (The config files changed)
+###########################################################
+
+err() {
+  echo "[$(date +'%Y-%m-%dT%H:%M:%S%z')]: $@" >&2
+}
+
+name=$1
+check=$2
+
+if ! [[ "$check" =~ true|false ]]; then
+  err "The second entry must be equal to true or false"
+  exit 1
+fi
+
+IDs=$(find . -type f -name "*-vs-*" | cut -d "-" -f1)
+
+
+for i in $IDs; do
+  num=$(grep "$name" ${i}_FILEDESC* | sed 's/.*order="\([[:digit:]]\+\).*/\1/')
+  sleep 1
+  subst=$(grep -B1 "<element1>${num}" ${i}-vs* )
+  echo $subst
+done

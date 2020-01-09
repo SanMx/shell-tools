@@ -3,6 +3,8 @@
 # Check or uncheck the boxes from the comparator.
 # Made by Adrian H. Obradors, on Christmas Eve. With the invaluable help of Eduardo Cuerda.
 # I dedicate this little program to all those that said it was a waste of time. It is.
+# Version 1.0
+# TODO(adrian): "delete" for deleting the field. (true/false/delete)
 
 ###########################################################
 # Globals:
@@ -16,22 +18,30 @@
 
 err() {
   echo "[$(date +'%Y-%m-%dT%H:%M:%S%z')]: $@" >&2
+  exit 1
 }
 
 name=$1
 check=$2
 
+# Prepare for checking/unchecking the boxes
 if ! [[ "$check" =~ true|false ]]; then
   err "The second entry must be equal to true or false"
-  exit 1
+elif [[ "$check" = "true" ]]; then
+  chack="false"
+else
+  chack="true"
 fi
+
 
 IDs=$(find . -type f -name "*-vs-*" | cut -d "-" -f1)
 
 
 for i in $IDs; do
-  num=$(grep "$name" ${i}_FILEDESC* | sed 's/.*order="\([[:digit:]]\+\).*/\1/')
-  sleep 1
-  subst=$(grep -B1 "<element1>${num}" ${i}-vs* )
-  echo $subst
+  # pattern finds the number associated with the name given
+  pattern="<element1>$(grep "$name" ${i}_FILEDESC* | sed 's/.*order="\([[:digit:]]\+\).*/\1/')"
+  # row_num gets the line where it finds a match to change the line before later
+  row_num=$(awk -v var="$pattern" '$0 ~ var { print NR }' ${i}-vs*)
+  # Here it changes the line before the match with "true" or "false"
+  awk -i inplace -v row="$row_num" -v check="$check" -v chack="$chack" '{if (NR == row -1 ) print gensub(chack, check, 1); else print}' ${i}-vs*
 done
